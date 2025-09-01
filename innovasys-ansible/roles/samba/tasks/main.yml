@@ -1,0 +1,59 @@
+- name: Instalar Samba
+  apt:
+    name: samba
+    state: present
+    update_cache: true
+
+- name: Crear grupo de desarrolladores
+  group:
+    name: "{{ samba_group }}"
+    state: present
+
+- name: Crear usuario de sistema sin shell y sin home
+  user:
+    name: "{{ samba_user }}"
+    group: "{{ samba_group }}"
+    shell: /usr/sbin/nologin
+    create_home: no
+    system: yes
+    state: present
+
+- name: Crear directorio del share con setgid
+  file:
+    path: "{{ samba_share_path }}"
+    state: directory
+    owner: root
+    group: "{{ samba_group }}"
+    mode: "{{ samba_dir_mode }}"
+
+- name: Plantilla /etc/samba/smb.conf
+  template:
+    src: smb.conf.j2
+    dest: /etc/samba/smb.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reiniciar smbd
+
+- name: Obtener lista de usuarios Samba (pdbedit)
+  command: pdbedit -L
+  register: pdb
+  changed_when: false
+  failed_when: false
+
+- name: Crear usuario Samba si no existe
+  shell: |
+    if ! pdbedit -L | grep -q '^{{ samba_user }}:'; then
+      (printf "%s\n%s\n" "{{ samba_password }}" "{{ samba_password }}" | smbpasswd -s -a "{{ samba_user }}") && smbpasswd -e "{{ samba_user }}"
+    fi
+  args:
+    executable: /bin/bash
+  when: "'{{ samba_user }}:' not in pdb.stdout"
+  no_log: true
+
+- name: Asegurar servicio smbd activo y habilitado
+  service:
+    name: smbd
+    state: started
+    enabled: true
+

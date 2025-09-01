@@ -1,0 +1,21 @@
+- name: Instalar Apache
+  apt:
+    name: apache2
+    state: present
+    update_cache: true
+
+- name: Plantilla index.html
+  template:
+    src: index.html.j2
+    dest: "{{ apache_index_dest }}"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reiniciar Apache
+
+- name: Asegurar servicio apache2 activo y habilitado
+  service:
+    name: apache2
+    state: started
+    enabled: true
+

@@ -1,0 +1,4 @@
+- name: Reiniciar smbd
+  service:
+    name: smbd
+    state: restarted

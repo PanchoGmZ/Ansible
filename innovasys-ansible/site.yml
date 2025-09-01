@@ -1,0 +1,9 @@
+- name: Configurar servidor InnovaSys
+  hosts: innovasys
+  become: true
+  vars_files:
+    - group_vars/innovasys.yml
+  roles:
+    - apache
+    - samba
+
